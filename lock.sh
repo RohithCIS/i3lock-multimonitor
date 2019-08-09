@@ -50,7 +50,10 @@ LOCK_CMD="$LOCK_BASE_CMD $LOCK_ARGS"
 if [ -e $OUTPUT_IMG ]
 then
     # Lock screen since image already exists
-    $LOCK_CMD
+    RES=$(xrandr | grep 'current' | sed -E 's/.*current\s([0-9]+)\sx\s([0-9]+).*/\1x\2/')
+    ffmpeg -f x11grab -video_size $RES -y -i $DISPLAY -i $OUTPUT_IMG -filter_complex "boxblur=5:1,overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2" -vframes 1 /tmp/screen.png -loglevel quiet
+    i3lock -t -i /tmp/screen.png
+    rm /tmp/screen.png
     exit 0
 fi
 
@@ -69,8 +72,8 @@ do
     ## if cache for that screensize doesnt exist
     if ! [ -e $CACHE_IMG ]
     then
-	# Create image for that screensize
-        eval convert '$BKG_IMG' '-resize' '${SCREEN_WIDTH}X${SCREEN_HEIGHT}^' '-gravity' 'Center' '-crop' '${SCREEN_WIDTH}X${SCREEN_HEIGHT}+0+0' '+repage' '$CACHE_IMG'
+    # Create image for that screensize
+        eval convert '$BKG_IMG' '-background' 'none' '-gravity' 'Center' '-extent' '${SCREEN_WIDTH}X${SCREEN_HEIGHT}^' '-crop' '${SCREEN_WIDTH}X${SCREEN_HEIGHT}+0+0' '+repage' '$CACHE_IMG'
     fi
 
     # Decide size of output image
@@ -82,8 +85,9 @@ do
 done <<<"`xrandr`"
 
 #Execute ImageMagick:
-eval convert -size ${OUTPUT_IMG_WIDTH}x${OUTPUT_IMG_HEIGHT} 'xc:black' $OUTPUT_IMG
+eval convert -size ${OUTPUT_IMG_WIDTH}x${OUTPUT_IMG_HEIGHT} 'xc:none' $OUTPUT_IMG
 eval convert $OUTPUT_IMG $PARAMS $OUTPUT_IMG
 
-#Lock the screen:
-$LOCK_CMD
+RES=$(xrandr | grep 'current' | sed -E 's/.*current\s([0-9]+)\sx\s([0-9]+).*/\1x\2/')
+ffmpeg -f x11grab -video_size $RES -y -i $DISPLAY -i $OUTPUT_IMG -filter_complex "boxblur=5:1,overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2" -vframes 1 /tmp/screen.png -loglevel quiet
+i3lock -t -i /tmp/screen.png
